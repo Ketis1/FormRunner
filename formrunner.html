@@ -1,0 +1,983 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FormRunner</title>
+<style>
+  :root {
+    --bg: #f5f4f0;
+    --surface: #ffffff;
+    --surface2: #f0eeea;
+    --border: #e2dfd8;
+    --border2: #ccc9c0;
+    --text: #1a1917;
+    --text2: #6b6860;
+    --text3: #9b9890;
+    --accent: #2d5be3;
+    --accent-light: #eef1fc;
+    --accent-dark: #1e3fa0;
+    --danger: #c0392b;
+    --danger-light: #fdf0ee;
+    --success: #1a7a4a;
+    --success-light: #eef7f2;
+    --star-on: #f0a500;
+    --star-off: #ddd;
+    --radius: 8px;
+    --radius-lg: 12px;
+    --font: 'Georgia', 'Times New Roman', serif;
+    --font-ui: system-ui, -apple-system, sans-serif;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #141412;
+      --surface: #1e1d1b;
+      --surface2: #272622;
+      --border: #333230;
+      --border2: #4a4845;
+      --text: #f0ede8;
+      --text2: #a09d98;
+      --text3: #6b6860;
+      --accent: #5b7ff5;
+      --accent-light: #1a2240;
+      --accent-dark: #8aa4ff;
+      --danger: #e05c50;
+      --danger-light: #2a1815;
+      --success: #4db87a;
+      --success-light: #0e2018;
+    }
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--text); font-family: var(--font-ui); font-size: 15px; line-height: 1.6; min-height: 100vh; }
+
+  /* ── Layout ── */
+  #app { max-width: 720px; margin: 0 auto; padding: 2rem 1.25rem 4rem; }
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 1.75rem 2rem; margin-bottom: 1rem; }
+  .card-sm { padding: 1.25rem 1.5rem; }
+
+  /* ── Landing / Import ── */
+  #screen-import { text-align: center; padding: 4rem 1rem; }
+  .logo { font-family: var(--font); font-size: 2.25rem; font-weight: normal; letter-spacing: -0.02em; color: var(--text); margin-bottom: 0.25rem; }
+  .logo span { color: var(--accent); }
+  .tagline { color: var(--text2); font-size: 0.95rem; margin-bottom: 3rem; }
+  .drop-zone {
+    border: 2px dashed var(--border2);
+    border-radius: var(--radius-lg);
+    padding: 3rem 2rem;
+    cursor: pointer;
+    transition: border-color 0.2s, background 0.2s;
+    background: var(--surface);
+    max-width: 480px;
+    margin: 0 auto 1.5rem;
+  }
+  .drop-zone:hover, .drop-zone.drag-over { border-color: var(--accent); background: var(--accent-light); }
+  .drop-zone svg { display: block; margin: 0 auto 1rem; opacity: 0.4; }
+  .drop-zone p { color: var(--text2); font-size: 0.9rem; }
+  .drop-zone p strong { color: var(--text); }
+  #file-input { display: none; }
+  .btn-group { display: flex; gap: 0.75rem; justify-content: center; flex-wrap: wrap; }
+  .btn {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 0.6rem 1.2rem; border-radius: var(--radius);
+    font-size: 0.9rem; font-family: var(--font-ui); cursor: pointer;
+    border: 1px solid var(--border2); background: var(--surface);
+    color: var(--text); text-decoration: none; transition: 0.15s;
+  }
+  .btn:hover { background: var(--surface2); border-color: var(--accent); color: var(--accent); }
+  .btn-primary { background: var(--accent); color: #fff; border-color: var(--accent); }
+  .btn-primary:hover { background: var(--accent-dark); border-color: var(--accent-dark); color: #fff; }
+  .btn-sm { padding: 0.4rem 0.8rem; font-size: 0.82rem; }
+  .demo-hint { font-size: 0.82rem; color: var(--text3); margin-top: 1.5rem; }
+
+  /* ── Form header ── */
+  #form-header { margin-bottom: 1.25rem; }
+  .form-title { font-family: var(--font); font-size: 1.8rem; font-weight: normal; letter-spacing: -0.01em; }
+  .form-desc { color: var(--text2); margin-top: 0.4rem; font-size: 0.93rem; }
+  .section-title { font-size: 1.05rem; font-weight: 600; margin-bottom: 0.25rem; }
+  .section-desc { color: var(--text2); font-size: 0.88rem; margin-bottom: 0.75rem; }
+
+  /* ── Progress bar ── */
+  .progress-wrap { margin-bottom: 1.5rem; }
+  .progress-label { font-size: 0.8rem; color: var(--text3); margin-bottom: 0.4rem; display: flex; justify-content: space-between; }
+  .progress-bar { height: 4px; background: var(--border); border-radius: 99px; overflow: hidden; }
+  .progress-fill { height: 100%; background: var(--accent); border-radius: 99px; transition: width 0.4s ease; }
+
+  /* ── Question ── */
+  .question { margin-bottom: 1.5rem; }
+  .question:last-child { margin-bottom: 0; }
+  .q-label { font-size: 0.97rem; font-weight: 500; margin-bottom: 0.25rem; }
+  .q-label .req { color: var(--danger); margin-left: 3px; }
+  .q-desc { color: var(--text2); font-size: 0.83rem; margin-bottom: 0.6rem; }
+  .q-error { color: var(--danger); font-size: 0.8rem; margin-top: 0.35rem; display: none; }
+  .q-error.show { display: block; }
+  .invalid input, .invalid textarea, .invalid select { border-color: var(--danger) !important; }
+
+  /* ── Inputs ── */
+  input[type=text], input[type=email], input[type=number], input[type=date], input[type=time],
+  textarea, select {
+    width: 100%; padding: 0.55rem 0.8rem;
+    border: 1px solid var(--border); border-radius: var(--radius);
+    background: var(--surface2); color: var(--text);
+    font-family: var(--font-ui); font-size: 0.93rem;
+    transition: border-color 0.15s, box-shadow 0.15s;
+    outline: none;
+  }
+  input:focus, textarea:focus, select:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 15%, transparent);
+  }
+  textarea { resize: vertical; min-height: 100px; }
+  select { appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='none' viewBox='0 0 24 24'%3E%3Cpath stroke='%23888' stroke-width='2' stroke-linecap='round' stroke-linejoin='round' d='M6 9l6 6 6-6'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 0.6rem center; padding-right: 2rem; }
+
+  /* ── Radio / Checkbox options ── */
+  .options-list { display: flex; flex-direction: column; gap: 0.45rem; }
+  .option-item {
+    display: flex; align-items: center; gap: 0.6rem;
+    padding: 0.5rem 0.75rem; border: 1px solid var(--border);
+    border-radius: var(--radius); cursor: pointer;
+    transition: border-color 0.15s, background 0.15s;
+  }
+  .option-item:hover { border-color: var(--accent); background: var(--accent-light); }
+  .option-item input[type=radio], .option-item input[type=checkbox] {
+    width: 16px; height: 16px; flex-shrink: 0;
+    accent-color: var(--accent); cursor: pointer;
+    padding: 0; border: none; background: none; box-shadow: none;
+  }
+  .option-item.selected { border-color: var(--accent); background: var(--accent-light); }
+  .option-label { font-size: 0.93rem; }
+  .other-input { margin-top: 0.4rem; }
+
+  /* ── Stars ── */
+  .stars { display: flex; gap: 0.35rem; }
+  .star { font-size: 2rem; cursor: pointer; color: var(--star-off); transition: color 0.1s, transform 0.1s; line-height: 1; }
+  .star.on { color: var(--star-on); }
+  .star:hover { transform: scale(1.15); }
+  .rating-labels { display: flex; justify-content: space-between; font-size: 0.75rem; color: var(--text3); margin-top: 0.3rem; }
+
+  /* ── Scale ── */
+  .scale-wrap { }
+  .scale-numbers { display: flex; gap: 0.3rem; flex-wrap: wrap; }
+  .scale-btn {
+    width: 40px; height: 40px; border: 1px solid var(--border);
+    border-radius: var(--radius); background: var(--surface2); color: var(--text2);
+    font-size: 0.88rem; cursor: pointer; font-family: var(--font-ui);
+    transition: 0.15s; display: flex; align-items: center; justify-content: center;
+  }
+  .scale-btn:hover { border-color: var(--accent); color: var(--accent); }
+  .scale-btn.selected { background: var(--accent); border-color: var(--accent); color: #fff; }
+  .scale-labels { display: flex; justify-content: space-between; font-size: 0.75rem; color: var(--text3); margin-top: 0.4rem; }
+
+  /* ── Matrix ── */
+  .matrix-table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
+  .matrix-table th { padding: 0.4rem 0.6rem; text-align: center; color: var(--text2); font-weight: 500; border-bottom: 1px solid var(--border); }
+  .matrix-table th:first-child { text-align: left; }
+  .matrix-table td { padding: 0.5rem 0.6rem; text-align: center; border-bottom: 1px solid var(--border); }
+  .matrix-table td:first-child { text-align: left; color: var(--text); }
+  .matrix-table tr:last-child td { border-bottom: none; }
+  .matrix-table tr:hover td { background: var(--surface2); }
+  .matrix-table input[type=radio], .matrix-table input[type=checkbox] {
+    width: 16px; height: 16px; accent-color: var(--accent); cursor: pointer;
+    padding: 0; border: none; background: none; box-shadow: none;
+  }
+
+  /* ── Divider question ── */
+  .divider-q { border-top: 2px solid var(--border); padding-top: 1.25rem; margin-top: 0.5rem; }
+  .divider-q .divider-title { font-size: 1rem; font-weight: 600; margin-bottom: 0.2rem; }
+  .divider-q .divider-desc { font-size: 0.85rem; color: var(--text2); }
+
+  /* ── Navigation ── */
+  .form-nav { display: flex; justify-content: space-between; align-items: center; margin-top: 1.5rem; }
+
+  /* ── Admin bar ── */
+  #admin-bar {
+    background: var(--surface); border-bottom: 1px solid var(--border);
+    padding: 0.6rem 1.25rem; display: flex; align-items: center;
+    gap: 1rem; position: sticky; top: 0; z-index: 100;
+  }
+  #admin-bar .app-name { font-family: var(--font); font-size: 1.1rem; }
+  #admin-bar .app-name span { color: var(--accent); }
+  .spacer { flex: 1; }
+  .resp-count { font-size: 0.8rem; color: var(--text2); background: var(--surface2); padding: 0.25rem 0.65rem; border-radius: 99px; }
+
+  /* ── Results panel ── */
+  #screen-results { }
+  .results-header { display: flex; align-items: center; gap: 1rem; margin-bottom: 1.25rem; flex-wrap: wrap; }
+  .results-title { font-family: var(--font); font-size: 1.4rem; font-weight: normal; }
+  .export-bar { display: flex; gap: 0.5rem; align-items: center; margin-left: auto; }
+  .results-table-wrap { overflow-x: auto; }
+  table.results-table { width: 100%; border-collapse: collapse; font-size: 0.82rem; min-width: 600px; }
+  table.results-table th { background: var(--surface2); padding: 0.5rem 0.75rem; text-align: left; font-weight: 500; color: var(--text2); border-bottom: 1px solid var(--border); white-space: nowrap; }
+  table.results-table td { padding: 0.5rem 0.75rem; border-bottom: 1px solid var(--border); vertical-align: top; max-width: 240px; word-break: break-word; }
+  table.results-table tr:last-child td { border-bottom: none; }
+  table.results-table tr:hover td { background: var(--surface2); }
+  .empty-results { text-align: center; padding: 3rem; color: var(--text2); }
+
+  /* ── Thank you ── */
+  #screen-thanks { text-align: center; padding: 4rem 1rem; }
+  .thanks-icon { font-size: 3rem; margin-bottom: 1rem; }
+  .thanks-title { font-family: var(--font); font-size: 1.6rem; font-weight: normal; margin-bottom: 0.5rem; }
+  .thanks-msg { color: var(--text2); margin-bottom: 2rem; }
+
+  /* ── Error ── */
+  .parse-error { background: var(--danger-light); border: 1px solid var(--danger); border-radius: var(--radius); padding: 1rem; color: var(--danger); font-size: 0.88rem; margin-top: 1rem; display: none; }
+  .parse-error.show { display: block; }
+
+  .hidden { display: none !important; }
+  @media (max-width: 540px) {
+    .card { padding: 1.25rem; }
+    .scale-btn { width: 34px; height: 34px; }
+  }
+</style>
+</head>
+<body>
+
+<div id="admin-bar" class="hidden">
+  <span class="app-name">Form<span>Runner</span></span>
+  <span class="spacer"></span>
+  <span class="resp-count" id="resp-count">0 responses</span>
+  <button class="btn btn-sm" onclick="showScreen('results')">Results</button>
+  <button class="btn btn-sm btn-primary" onclick="showScreen('form'); startForm()">Fill form</button>
+  <button class="btn btn-sm" onclick="resetAll()">↩ Load new</button>
+</div>
+
+<div id="app">
+
+  <!-- IMPORT SCREEN -->
+  <div id="screen-import">
+    <div class="logo">Form<span>Runner</span></div>
+    <p class="tagline">Local form builder — import, fill, export</p>
+    <div class="drop-zone" id="drop-zone" onclick="document.getElementById('file-input').click()">
+      <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+        <path d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/>
+      </svg>
+      <p><strong>Click to choose a JSON file</strong><br>or drag and drop it here</p>
+    </div>
+    <div class="btn-group">
+      <button class="btn" onclick="document.getElementById('file-input').click()">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14,2 14,8 20,8"/></svg>
+        Browse file
+      </button>
+      <button class="btn" onclick="loadDemo()">Load demo form</button>
+    </div>
+    <input type="file" id="file-input" accept=".json">
+    <div class="parse-error" id="parse-error"></div>
+    <p class="demo-hint">Accepts .json files following the FormRunner schema</p>
+  </div>
+
+  <!-- FORM SCREEN -->
+  <div id="screen-form" class="hidden">
+    <div class="progress-wrap hidden" id="progress-wrap">
+      <div class="progress-label"><span id="progress-text">Section 1 of 1</span><span id="progress-pct">0%</span></div>
+      <div class="progress-bar"><div class="progress-fill" id="progress-fill" style="width:0%"></div></div>
+    </div>
+    <div id="form-header" class="card">
+      <div class="form-title" id="form-title"></div>
+      <div class="form-desc" id="form-desc"></div>
+    </div>
+    <div id="form-sections"></div>
+    <div class="form-nav">
+      <button class="btn" id="btn-prev" onclick="prevSection()">← Previous</button>
+      <button class="btn btn-primary" id="btn-next" onclick="nextSection()">Next →</button>
+      <button class="btn btn-primary hidden" id="btn-submit" onclick="submitForm()">Submit form</button>
+    </div>
+  </div>
+
+  <!-- RESULTS SCREEN -->
+  <div id="screen-results" class="hidden">
+    <div class="card">
+      <div class="results-header">
+        <div class="results-title" id="results-title">Results</div>
+        <div class="export-bar">
+          <button class="btn btn-sm" onclick="exportJSON()">Export JSON</button>
+          <button class="btn btn-sm btn-primary" onclick="exportXLSX()">Export XLSX</button>
+        </div>
+      </div>
+      <div class="results-table-wrap" id="results-table-wrap">
+        <div class="empty-results">No responses yet.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- THANKS SCREEN -->
+  <div id="screen-thanks" class="hidden">
+    <div class="thanks-icon">✓</div>
+    <div class="thanks-title" id="thanks-title">Thank you!</div>
+    <div class="thanks-msg" id="thanks-msg">Your response has been recorded.</div>
+    <div class="btn-group">
+      <button class="btn btn-primary" onclick="showScreen('form'); startForm()">Fill again</button>
+      <button class="btn" onclick="showScreen('results')">View results</button>
+    </div>
+  </div>
+
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<script>
+// ── State ──────────────────────────────────────────────────────────
+let formDef = null;
+let currentSection = 0;
+let responses = [];
+let currentResponse = {};
+let allSections = [];
+
+// ── Screens ────────────────────────────────────────────────────────
+function showScreen(name) {
+  ['import','form','results','thanks'].forEach(s => {
+    document.getElementById('screen-' + s).classList.toggle('hidden', s !== name);
+  });
+}
+
+function resetAll() {
+  formDef = null; responses = []; currentResponse = {}; currentSection = 0;
+  document.getElementById('admin-bar').classList.add('hidden');
+  showScreen('import');
+}
+
+// ── File loading ───────────────────────────────────────────────────
+document.getElementById('file-input').addEventListener('change', e => {
+  const file = e.target.files[0];
+  if (file) readFile(file);
+  e.target.value = '';
+});
+
+const dz = document.getElementById('drop-zone');
+dz.addEventListener('dragover', e => { e.preventDefault(); dz.classList.add('drag-over'); });
+dz.addEventListener('dragleave', () => dz.classList.remove('drag-over'));
+dz.addEventListener('drop', e => {
+  e.preventDefault(); dz.classList.remove('drag-over');
+  const file = e.dataTransfer.files[0];
+  if (file) readFile(file);
+});
+
+function readFile(file) {
+  const reader = new FileReader();
+  reader.onload = e => parseFormJSON(e.target.result);
+  reader.readAsText(file);
+}
+
+function parseFormJSON(text) {
+  const errEl = document.getElementById('parse-error');
+  errEl.classList.remove('show');
+  try {
+    const parsed = JSON.parse(text);
+    if (!parsed.form) throw new Error('Missing top-level "form" key.');
+    if (!parsed.form.title) throw new Error('Missing form.title.');
+    if (!parsed.form.sections || !parsed.form.sections.length) throw new Error('Missing or empty form.sections.');
+    formDef = parsed.form;
+    allSections = formDef.sections || [];
+    responses = [];
+    document.getElementById('admin-bar').classList.remove('hidden');
+    startForm();
+    showScreen('form');
+  } catch(err) {
+    errEl.textContent = 'Error parsing form: ' + err.message;
+    errEl.classList.add('show');
+  }
+}
+
+function loadDemo() {
+  parseFormJSON(JSON.stringify(DEMO_FORM));
+}
+
+// ── Form rendering ─────────────────────────────────────────────────
+function startForm() {
+  currentSection = 0;
+  currentResponse = {};
+  renderSection();
+}
+
+function renderSection() {
+  const form = formDef;
+  const settings = form.settings || {};
+
+  document.getElementById('form-title').textContent = form.title;
+  document.getElementById('form-desc').textContent = form.description || '';
+
+  const total = allSections.length;
+  const progWrap = document.getElementById('progress-wrap');
+  if (settings.show_progress_bar !== false && total > 1) {
+    progWrap.classList.remove('hidden');
+    const pct = Math.round(((currentSection) / total) * 100);
+    document.getElementById('progress-text').textContent = `Section ${currentSection+1} of ${total}`;
+    document.getElementById('progress-pct').textContent = pct + '%';
+    document.getElementById('progress-fill').style.width = pct + '%';
+  } else {
+    progWrap.classList.add('hidden');
+  }
+
+  const sectionsEl = document.getElementById('form-sections');
+  sectionsEl.innerHTML = '';
+
+  const sect = allSections[currentSection];
+  const card = document.createElement('div');
+  card.className = 'card';
+
+  if (sect.title || sect.description) {
+    if (sect.title) {
+      const t = document.createElement('div');
+      t.className = 'section-title';
+      t.textContent = sect.title;
+      card.appendChild(t);
+    }
+    if (sect.description) {
+      const d = document.createElement('div');
+      d.className = 'section-desc';
+      d.textContent = sect.description;
+      card.appendChild(d);
+    }
+  }
+
+  (sect.questions || []).forEach(q => {
+    card.appendChild(renderQuestion(q));
+  });
+
+  sectionsEl.appendChild(card);
+
+  const isLast = currentSection === allSections.length - 1;
+  document.getElementById('btn-prev').classList.toggle('hidden', currentSection === 0);
+  document.getElementById('btn-next').classList.toggle('hidden', isLast);
+  document.getElementById('btn-submit').classList.toggle('hidden', !isLast);
+
+  updateRespCount();
+}
+
+function renderQuestion(q) {
+  if (q.type === 'divider') {
+    const wrap = document.createElement('div');
+    wrap.className = 'question divider-q';
+    if (q.label) { const t = document.createElement('div'); t.className = 'divider-title'; t.textContent = q.label; wrap.appendChild(t); }
+    if (q.description) { const d = document.createElement('div'); d.className = 'divider-desc'; d.textContent = q.description; wrap.appendChild(d); }
+    return wrap;
+  }
+
+  const wrap = document.createElement('div');
+  wrap.className = 'question';
+  wrap.dataset.qid = q.id;
+
+  const label = document.createElement('div');
+  label.className = 'q-label';
+  label.textContent = q.label;
+  if (q.required) { const r = document.createElement('span'); r.className = 'req'; r.textContent = '*'; label.appendChild(r); }
+  wrap.appendChild(label);
+
+  if (q.description) {
+    const desc = document.createElement('div');
+    desc.className = 'q-desc';
+    desc.textContent = q.description;
+    wrap.appendChild(desc);
+  }
+
+  const inputWrap = document.createElement('div');
+  inputWrap.className = 'input-wrap';
+
+  const saved = currentResponse[q.id];
+
+  switch(q.type) {
+    case 'short_text':
+    case 'email': {
+      const inp = document.createElement('input');
+      inp.type = q.type === 'email' ? 'email' : 'text';
+      inp.placeholder = q.placeholder || '';
+      if (q.validation) { if (q.validation.max_length) inp.maxLength = q.validation.max_length; }
+      if (saved) inp.value = saved;
+      inp.addEventListener('input', () => { currentResponse[q.id] = inp.value; clearError(wrap); });
+      inputWrap.appendChild(inp);
+      break;
+    }
+    case 'long_text': {
+      const ta = document.createElement('textarea');
+      ta.placeholder = q.placeholder || '';
+      ta.rows = q.rows || 4;
+      if (q.validation && q.validation.max_length) ta.maxLength = q.validation.max_length;
+      if (saved) ta.value = saved;
+      ta.addEventListener('input', () => { currentResponse[q.id] = ta.value; clearError(wrap); });
+      inputWrap.appendChild(ta);
+      break;
+    }
+    case 'number': {
+      const inp = document.createElement('input');
+      inp.type = 'number';
+      if (q.min !== undefined) inp.min = q.min;
+      if (q.max !== undefined) inp.max = q.max;
+      if (q.step !== undefined) inp.step = q.step;
+      inp.placeholder = q.placeholder || '';
+      if (saved !== undefined) inp.value = saved;
+      inp.addEventListener('input', () => { currentResponse[q.id] = inp.value === '' ? '' : Number(inp.value); clearError(wrap); });
+      inputWrap.appendChild(inp);
+      break;
+    }
+    case 'date': {
+      const inp = document.createElement('input');
+      inp.type = 'date';
+      if (q.min_date && q.min_date !== 'today') inp.min = q.min_date;
+      if (q.max_date === 'today') inp.max = new Date().toISOString().split('T')[0];
+      else if (q.max_date) inp.max = q.max_date;
+      if (saved) inp.value = saved;
+      inp.addEventListener('change', () => { currentResponse[q.id] = inp.value; clearError(wrap); });
+      inputWrap.appendChild(inp);
+      break;
+    }
+    case 'time': {
+      const inp = document.createElement('input');
+      inp.type = 'time';
+      if (saved) inp.value = saved;
+      inp.addEventListener('change', () => { currentResponse[q.id] = inp.value; clearError(wrap); });
+      inputWrap.appendChild(inp);
+      break;
+    }
+    case 'single_choice': {
+      const display = q.display || 'radio';
+      if (display === 'dropdown') {
+        const sel = document.createElement('select');
+        const def = document.createElement('option'); def.value = ''; def.textContent = '— Select an option —'; sel.appendChild(def);
+        (q.options || []).forEach(opt => {
+          const o = document.createElement('option'); o.value = opt.value; o.textContent = opt.label;
+          if (saved === opt.value) o.selected = true;
+          sel.appendChild(o);
+        });
+        sel.addEventListener('change', () => { currentResponse[q.id] = sel.value; clearError(wrap); });
+        inputWrap.appendChild(sel);
+      } else {
+        const list = document.createElement('div'); list.className = 'options-list';
+        (q.options || []).forEach(opt => {
+          const item = document.createElement('label'); item.className = 'option-item';
+          if (saved === opt.value) item.classList.add('selected');
+          const inp = document.createElement('input'); inp.type = 'radio'; inp.name = 'q_' + q.id; inp.value = opt.value;
+          if (saved === opt.value) inp.checked = true;
+          inp.addEventListener('change', () => {
+            currentResponse[q.id] = opt.value;
+            list.querySelectorAll('.option-item').forEach(i => i.classList.remove('selected'));
+            item.classList.add('selected');
+            clearError(wrap);
+          });
+          const lbl = document.createElement('span'); lbl.className = 'option-label'; lbl.textContent = opt.label;
+          item.appendChild(inp); item.appendChild(lbl); list.appendChild(item);
+        });
+        inputWrap.appendChild(list);
+      }
+      break;
+    }
+    case 'dropdown': {
+      const sel = document.createElement('select');
+      const def = document.createElement('option'); def.value = ''; def.textContent = '— Select an option —'; sel.appendChild(def);
+      (q.options || []).forEach(opt => {
+        const o = document.createElement('option'); o.value = opt.value; o.textContent = opt.label;
+        if (saved === opt.value) o.selected = true;
+        sel.appendChild(o);
+      });
+      sel.addEventListener('change', () => { currentResponse[q.id] = sel.value; clearError(wrap); });
+      inputWrap.appendChild(sel);
+      break;
+    }
+    case 'multiple_choice': {
+      const list = document.createElement('div'); list.className = 'options-list';
+      const savedArr = Array.isArray(saved) ? saved : [];
+      (q.options || []).forEach(opt => {
+        const item = document.createElement('label'); item.className = 'option-item';
+        const isChecked = savedArr.includes(opt.value);
+        if (isChecked) item.classList.add('selected');
+        const inp = document.createElement('input'); inp.type = 'checkbox'; inp.value = opt.value;
+        inp.checked = isChecked;
+        inp.addEventListener('change', () => {
+          updateMultiChoice(q, list, null);
+          item.classList.toggle('selected', inp.checked);
+          clearError(wrap);
+        });
+        const lbl = document.createElement('span'); lbl.className = 'option-label'; lbl.textContent = opt.label;
+        item.appendChild(inp); item.appendChild(lbl); list.appendChild(item);
+      });
+      if (q.other_option) {
+        const otherItem = document.createElement('label'); otherItem.className = 'option-item';
+        const otherInp = document.createElement('input'); otherInp.type = 'checkbox'; otherInp.value = '__other__';
+        const savedOther = savedArr.find(v => v && v.startsWith('other:'));
+        if (savedOther) { otherInp.checked = true; otherItem.classList.add('selected'); }
+        const otherLbl = document.createElement('span'); otherLbl.className = 'option-label'; otherLbl.textContent = 'Other';
+        const otherText = document.createElement('input'); otherText.type = 'text'; otherText.className = 'other-input';
+        otherText.placeholder = 'Specify...'; otherText.style.marginTop = '6px'; otherText.style.display = 'none';
+        if (savedOther) { otherText.style.display = ''; otherText.value = savedOther.replace('other:', ''); }
+        otherInp.addEventListener('change', () => {
+          otherText.style.display = otherInp.checked ? '' : 'none';
+          otherItem.classList.toggle('selected', otherInp.checked);
+          updateMultiChoice(q, list, otherText);
+          clearError(wrap);
+        });
+        otherText.addEventListener('input', () => { updateMultiChoice(q, list, otherText); });
+        otherItem.appendChild(otherInp); otherItem.appendChild(otherLbl);
+        const otherWrap = document.createElement('div');
+        otherWrap.appendChild(otherItem); otherWrap.appendChild(otherText);
+        list.appendChild(otherWrap);
+      }
+      currentResponse[q.id] = currentResponse[q.id] || savedArr;
+      inputWrap.appendChild(list);
+      break;
+    }
+    case 'rating': {
+      const min = q.min || 1; const max = q.max || 5;
+      const style = q.style || 'stars';
+      const starRow = document.createElement('div'); starRow.className = style === 'stars' ? 'stars' : 'scale-numbers';
+      let current = saved || 0;
+      for (let i = min; i <= max; i++) {
+        const s = document.createElement('span');
+        if (style === 'stars') {
+          s.className = 'star' + (i <= current ? ' on' : '');
+          s.textContent = '★';
+          s.addEventListener('mouseenter', () => {
+            starRow.querySelectorAll('.star').forEach((el, idx) => el.classList.toggle('on', idx < i - min + 1));
+          });
+          s.addEventListener('mouseleave', () => {
+            starRow.querySelectorAll('.star').forEach((el, idx) => el.classList.toggle('on', idx < current - min + 1));
+          });
+          s.addEventListener('click', () => {
+            current = i; currentResponse[q.id] = i;
+            starRow.querySelectorAll('.star').forEach((el, idx) => el.classList.toggle('on', idx < i - min + 1));
+            clearError(wrap);
+          });
+        } else {
+          s.className = 'scale-btn' + (i === current ? ' selected' : '');
+          s.textContent = i;
+          s.addEventListener('click', () => {
+            current = i; currentResponse[q.id] = i;
+            starRow.querySelectorAll('.scale-btn').forEach(el => el.classList.remove('selected'));
+            s.classList.add('selected');
+            clearError(wrap);
+          });
+        }
+        starRow.appendChild(s);
+      }
+      inputWrap.appendChild(starRow);
+      if (q.low_label || q.high_label) {
+        const lblRow = document.createElement('div'); lblRow.className = 'rating-labels';
+        lblRow.innerHTML = `<span>${q.low_label || ''}</span><span>${q.high_label || ''}</span>`;
+        inputWrap.appendChild(lblRow);
+      }
+      break;
+    }
+    case 'scale': {
+      const min = q.min !== undefined ? q.min : 0;
+      const max = q.max !== undefined ? q.max : 10;
+      const step = q.step || 1;
+      const scaleWrap = document.createElement('div'); scaleWrap.className = 'scale-wrap';
+      const nums = document.createElement('div'); nums.className = 'scale-numbers';
+      let current = saved !== undefined ? saved : null;
+      for (let i = min; i <= max; i += step) {
+        const btn = document.createElement('button'); btn.type = 'button'; btn.className = 'scale-btn';
+        btn.textContent = i;
+        if (i === current) btn.classList.add('selected');
+        btn.addEventListener('click', () => {
+          current = i; currentResponse[q.id] = i;
+          nums.querySelectorAll('.scale-btn').forEach(b => b.classList.remove('selected'));
+          btn.classList.add('selected');
+          clearError(wrap);
+        });
+        nums.appendChild(btn);
+      }
+      scaleWrap.appendChild(nums);
+      if (q.low_label || q.high_label) {
+        const lblRow = document.createElement('div'); lblRow.className = 'scale-labels';
+        lblRow.innerHTML = `<span>${q.low_label || ''}</span><span>${q.high_label || ''}</span>`;
+        scaleWrap.appendChild(lblRow);
+      }
+      inputWrap.appendChild(scaleWrap);
+      break;
+    }
+    case 'matrix': {
+      const tbl = document.createElement('table'); tbl.className = 'matrix-table';
+      const thead = document.createElement('thead'); const hrow = document.createElement('tr');
+      const th0 = document.createElement('th'); hrow.appendChild(th0);
+      (q.columns || []).forEach(col => { const th = document.createElement('th'); th.textContent = col.label; hrow.appendChild(th); });
+      thead.appendChild(hrow); tbl.appendChild(thead);
+      const tbody = document.createElement('tbody');
+      const savedMatrix = saved || {};
+      (q.rows || []).forEach(row => {
+        const tr = document.createElement('tr');
+        const td0 = document.createElement('td'); td0.textContent = row.label; tr.appendChild(td0);
+        (q.columns || []).forEach(col => {
+          const td = document.createElement('td');
+          const inp = document.createElement('input');
+          inp.type = q.multiple_per_row ? 'checkbox' : 'radio';
+          inp.name = `q_${q.id}_${row.id}`;
+          inp.value = col.value;
+          if (savedMatrix[row.id] === col.value || (Array.isArray(savedMatrix[row.id]) && savedMatrix[row.id].includes(col.value))) inp.checked = true;
+          inp.addEventListener('change', () => {
+            if (!currentResponse[q.id]) currentResponse[q.id] = {};
+            if (q.multiple_per_row) {
+              const vals = Array.from(tr.querySelectorAll('input:checked')).map(i => i.value);
+              currentResponse[q.id][row.id] = vals;
+            } else {
+              currentResponse[q.id][row.id] = col.value;
+            }
+            clearError(wrap);
+          });
+          td.appendChild(inp); tr.appendChild(td);
+        });
+        tbody.appendChild(tr);
+      });
+      tbl.appendChild(tbody);
+      inputWrap.appendChild(tbl);
+      break;
+    }
+    default: {
+      const note = document.createElement('div');
+      note.style.color = 'var(--text3)'; note.style.fontSize = '0.8rem';
+      note.textContent = `[Unsupported question type: ${q.type}]`;
+      inputWrap.appendChild(note);
+    }
+  }
+
+  wrap.appendChild(inputWrap);
+  const errEl = document.createElement('div'); errEl.className = 'q-error'; wrap.appendChild(errEl);
+  return wrap;
+}
+
+function updateMultiChoice(q, list, otherText) {
+  const checked = Array.from(list.querySelectorAll('input[type=checkbox]:checked'));
+  const vals = checked.map(inp => {
+    if (inp.value === '__other__') {
+      return otherText && otherText.value ? 'other:' + otherText.value : 'other:';
+    }
+    return inp.value;
+  });
+  currentResponse[q.id] = vals;
+}
+
+function clearError(wrap) {
+  wrap.classList.remove('invalid');
+  const e = wrap.querySelector('.q-error');
+  if (e) e.classList.remove('show');
+}
+
+// ── Navigation ─────────────────────────────────────────────────────
+function validateSection() {
+  const sect = allSections[currentSection];
+  let ok = true;
+  (sect.questions || []).forEach(q => {
+    if (q.type === 'divider') return;
+    if (!q.required) return;
+    const val = currentResponse[q.id];
+    const wrap = document.querySelector(`.question[data-qid="${q.id}"]`);
+    if (!wrap) return;
+    let invalid = false;
+    if (val === undefined || val === null || val === '') invalid = true;
+    else if (Array.isArray(val) && val.length === 0) invalid = true;
+    else if (typeof val === 'object' && !Array.isArray(val) && Object.keys(val).length === 0) invalid = true;
+    if (invalid) {
+      ok = false;
+      wrap.classList.add('invalid');
+      const e = wrap.querySelector('.q-error');
+      if (e) { e.textContent = 'This question is required.'; e.classList.add('show'); }
+    }
+  });
+  return ok;
+}
+
+function nextSection() {
+  if (!validateSection()) return;
+  if (currentSection < allSections.length - 1) {
+    currentSection++;
+    renderSection();
+    window.scrollTo(0, 0);
+  }
+}
+
+function prevSection() {
+  if (currentSection > 0) {
+    currentSection--;
+    renderSection();
+    window.scrollTo(0, 0);
+  }
+}
+
+function submitForm() {
+  if (!validateSection()) return;
+  const resp = Object.assign({}, currentResponse);
+  resp._id = 'resp_' + Date.now();
+  resp._submitted_at = new Date().toISOString();
+  responses.push(resp);
+  updateRespCount();
+
+  const settings = formDef.settings || {};
+  const thanks = document.getElementById('thanks-title');
+  const thanksMsg = document.getElementById('thanks-msg');
+  thanks.textContent = 'Thank you!';
+  thanksMsg.textContent = settings.confirmation_message || 'Your response has been recorded.';
+  showScreen('thanks');
+}
+
+function updateRespCount() {
+  const el = document.getElementById('resp-count');
+  if (el) el.textContent = responses.length + (responses.length === 1 ? ' response' : ' responses');
+}
+
+// ── Results ────────────────────────────────────────────────────────
+function showScreen(name) {
+  ['import','form','results','thanks'].forEach(s => {
+    document.getElementById('screen-' + s).classList.toggle('hidden', s !== name);
+  });
+  if (name === 'results') renderResults();
+}
+
+function getAllQuestions() {
+  const qs = [];
+  (allSections || []).forEach(s => (s.questions || []).forEach(q => { if (q.type !== 'divider') qs.push(q); }));
+  return qs;
+}
+
+function renderResults() {
+  const titleEl = document.getElementById('results-title');
+  if (formDef) titleEl.textContent = formDef.title + ' — Results';
+  const wrap = document.getElementById('results-table-wrap');
+  if (!responses.length) { wrap.innerHTML = '<div class="empty-results">No responses yet.</div>'; return; }
+  const qs = getAllQuestions();
+  const tbl = document.createElement('table'); tbl.className = 'results-table';
+  const thead = document.createElement('thead'); const hrow = document.createElement('tr');
+  const thTime = document.createElement('th'); thTime.textContent = 'Submitted'; hrow.appendChild(thTime);
+  qs.forEach(q => {
+    if (q.type === 'matrix') {
+      (q.rows || []).forEach(row => {
+        const th = document.createElement('th'); th.textContent = q.label + ' — ' + row.label; hrow.appendChild(th);
+      });
+    } else {
+      const th = document.createElement('th'); th.textContent = q.label; hrow.appendChild(th);
+    }
+  });
+  thead.appendChild(hrow); tbl.appendChild(thead);
+  const tbody = document.createElement('tbody');
+  responses.forEach(resp => {
+    const tr = document.createElement('tr');
+    const tdTime = document.createElement('td');
+    tdTime.textContent = resp._submitted_at ? new Date(resp._submitted_at).toLocaleString() : '';
+    tr.appendChild(tdTime);
+    qs.forEach(q => {
+      const val = resp[q.id];
+      if (q.type === 'matrix') {
+        (q.rows || []).forEach(row => {
+          const td = document.createElement('td');
+          td.textContent = val ? (Array.isArray(val[row.id]) ? val[row.id].join(', ') : (val[row.id] || '')) : '';
+          tr.appendChild(td);
+        });
+      } else {
+        const td = document.createElement('td');
+        td.textContent = val === undefined ? '' : (Array.isArray(val) ? val.join(', ') : String(val));
+        tr.appendChild(td);
+      }
+    });
+    tbody.appendChild(tr);
+  });
+  tbl.appendChild(tbody);
+  wrap.innerHTML = ''; wrap.appendChild(tbl);
+}
+
+// ── Export ────────────────────────────────────────────────────────
+function exportJSON() {
+  const out = {
+    meta: {
+      form_id: formDef.id || 'form',
+      form_title: formDef.title,
+      form_version: formDef.version || '1.0',
+      exported_at: new Date().toISOString(),
+      total_responses: responses.length
+    },
+    responses: responses
+  };
+  const blob = new Blob([JSON.stringify(out, null, 2)], { type: 'application/json' });
+  download(blob, (formDef.id || 'form') + '_results_' + ts() + '.json');
+}
+
+function exportXLSX() {
+  const qs = getAllQuestions();
+  const headers = ['Submitted'];
+  qs.forEach(q => {
+    if (q.type === 'matrix') (q.rows || []).forEach(r => headers.push(q.label + ' — ' + r.label));
+    else headers.push(q.label);
+  });
+  const rows = responses.map(resp => {
+    const row = [resp._submitted_at ? new Date(resp._submitted_at).toLocaleString() : ''];
+    qs.forEach(q => {
+      const val = resp[q.id];
+      if (q.type === 'matrix') {
+        (q.rows || []).forEach(r => row.push(val ? (Array.isArray(val[r.id]) ? val[r.id].join(', ') : (val[r.id] || '')) : ''));
+      } else {
+        row.push(val === undefined ? '' : (Array.isArray(val) ? val.join(', ') : val));
+      }
+    });
+    return row;
+  });
+  const ws = XLSX.utils.aoa_to_sheet([headers, ...rows]);
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'Responses');
+  XLSX.writeFile(wb, (formDef.id || 'form') + '_results_' + ts() + '.xlsx');
+}
+
+function ts() { return new Date().toISOString().replace(/[:.]/g,'-').slice(0,19); }
+function download(blob, name) {
+  const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = name;
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+}
+
+// ── Demo form ──────────────────────────────────────────────────────
+const DEMO_FORM = {
+  "form": {
+    "id": "demo_survey",
+    "title": "Employee Satisfaction Survey",
+    "description": "This survey takes approximately 5 minutes. All responses are anonymous.",
+    "version": "1.0",
+    "settings": {
+      "allow_multiple_submissions": true,
+      "show_progress_bar": true,
+      "confirmation_message": "Thank you for your feedback! Your response has been recorded."
+    },
+    "sections": [
+      {
+        "id": "section_personal",
+        "title": "About You",
+        "description": "A few quick details to help us understand the data.",
+        "questions": [
+          { "id": "q_name", "type": "short_text", "label": "Your full name", "required": true, "placeholder": "First and last name" },
+          { "id": "q_dept", "type": "single_choice", "label": "Which department are you in?", "required": true, "display": "dropdown", "options": [
+            {"value":"eng","label":"Engineering"},{"value":"design","label":"Design"},{"value":"sales","label":"Sales"},{"value":"hr","label":"Human Resources"},{"value":"other","label":"Other"}
+          ]},
+          { "id": "q_tenure", "type": "single_choice", "label": "How long have you been with the company?", "required": false, "display": "radio", "options": [
+            {"value":"<1","label":"Less than 1 year"},{"value":"1-3","label":"1–3 years"},{"value":"3-5","label":"3–5 years"},{"value":"5+","label":"More than 5 years"}
+          ]}
+        ]
+      },
+      {
+        "id": "section_satisfaction",
+        "title": "Your Experience",
+        "questions": [
+          { "id": "q_overall", "type": "rating", "label": "Overall, how satisfied are you with your role?", "required": true, "min": 1, "max": 5, "style": "stars", "low_label": "Very dissatisfied", "high_label": "Very satisfied" },
+          { "id": "q_recommend", "type": "scale", "label": "How likely are you to recommend this company as a great place to work? (0–10)", "required": true, "min": 0, "max": 10, "low_label": "Not likely", "high_label": "Highly likely" },
+          { "id": "q_aspects", "type": "matrix", "label": "Rate the following aspects of your work environment:", "required": false, "multiple_per_row": false,
+            "rows": [
+              {"id":"compensation","label":"Compensation & benefits"},
+              {"id":"worklife","label":"Work-life balance"},
+              {"id":"growth","label":"Career growth"},
+              {"id":"culture","label":"Company culture"}
+            ],
+            "columns": [
+              {"value":"1","label":"Poor"},{"value":"2","label":"Fair"},{"value":"3","label":"Good"},{"value":"4","label":"Excellent"}
+            ]
+          }
+        ]
+      },
+      {
+        "id": "section_feedback",
+        "title": "Open Feedback",
+        "questions": [
+          { "id": "q_best", "type": "long_text", "label": "What do you like most about working here?", "required": false, "placeholder": "Feel free to be specific...", "rows": 4 },
+          { "id": "q_improve", "type": "long_text", "label": "What is one thing you would improve?", "required": false, "rows": 4 },
+          { "id": "q_skills", "type": "multiple_choice", "label": "Which skills would you like more training in?", "required": false,
+            "options": [
+              {"value":"leadership","label":"Leadership"},{"value":"technical","label":"Technical skills"},{"value":"communication","label":"Communication"},{"value":"project","label":"Project management"},{"value":"data","label":"Data & analytics"}
+            ],
+            "other_option": true
+          },
+          { "id": "q_email", "type": "email", "label": "Your email (optional, for follow-up only)", "required": false, "placeholder": "you@company.com" }
+        ]
+      }
+    ]
+  }
+};
+</script>
+</body>
+</html>

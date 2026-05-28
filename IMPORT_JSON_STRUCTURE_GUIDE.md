@@ -128,7 +128,7 @@ When users submit responses, values are stored under each question `id` as:
 
 - `short_text`, `email`, `long_text`, `date`, `time`, `single_choice`, `dropdown` -> string
 - `number`, `rating`, `scale` -> number
-- `multiple_choice` -> string array (if `other_option`, custom value becomes `"other:<text>"`)
+- `multiple_choice` -> string array (if `other_option`, custom value becomes `"other:<user_input>"`, where `<user_input>` is the text typed in the "Other" field)
 - `matrix` -> object keyed by row id
   - single-per-row mode: `rowId -> "columnValue"`
   - multiple-per-row mode: `rowId -> ["columnValue1", "..."]`
